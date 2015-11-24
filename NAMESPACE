@@ -1,0 +1,8 @@
+exportPattern("^[^\\.]")
+import("hglm","GenABEL")
+importFrom("methods", "new")
+importFrom("stats", "as.formula", "gaussian", "model.frame",
+  "model.matrix", "pchisq", "qchisq", "qnorm", "rgamma",
+  "rnorm", "terms")
+
+

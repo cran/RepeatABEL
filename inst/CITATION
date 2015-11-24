@@ -1,0 +1,34 @@
+citHeader("To cite RepeatABEL in publications use:")
+
+citEntry(entry="Article",
+         title = "Increasing the power of genome wide association studies in natural populations using repeated measures: evaluation and implementation",
+         author = personList(as.person("Lars Ronnegard"),
+                             as.person("S. Eryn McFarlane"),
+                             as.person("Arild Husby"),
+                             as.person("Takeshi Kawakami"),
+                             as.person("Hans Ellegren"),
+                             as.person("Anna Qvarnstrom")),
+         journal      = "Methods in Ecology and Evolution",
+         year         = "2016",
+         volume       = "1",
+         number       = "1",
+         pages        = "1-1",
+         
+         textVersion = 
+         paste("Lars Ronnegard, S. Eryn McFarlane, Arild Husby, Takeshi Kawakami, Hans Ellegren and Anna Qvarnstrom (2016)", 
+               "Increasing the power of genome wide association studies in natural populations using repeated measures: evaluation and implementation.",
+               "Methods in Ecology and Evolution, (pending revision).")
+)
+
+citEntry(entry="Manual",
+title = "GenABEL: genome-wide SNP association analysis",
+author = "GenABEL project developers",
+    year = "2013",
+    note = "R package version 1.8-0",
+    url = "http://CRAN.R-project.org/package=GenABEL",
+
+textVersion = 
+         paste("GenABEL project developers (2013).",
+"GenABEL: genome-wide SNP association analysis.",
+"R package version 1.8-0.","http://CRAN.R-project.org/package=GenABEL")
+)

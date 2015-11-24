@@ -1,0 +1,364 @@
+%\VignetteIndexEntry{The RepeatABEL package}
+%\VignetteKeywords{RepeatABEL}
+%\VignettePackage{RepeatABEL}
+\documentclass[10pt, a4paper,english]{report}   % list options between brackets
+\usepackage{graphicx}
+\usepackage{Sweave}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{babel}
+\usepackage[svgnames, hyperref]{xcolor}
+\usepackage{framed}
+\usepackage{marginnote}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{natbib}
+\usepackage{listings}     
+\usepackage{amsmath}
+\usepackage{amssymb}
+ 
+\lstset{language=R, tabsize=2, showspaces=FALSE, showstringspaces=FALSE}  
+\lstset{breaklines=TRUE} 
+
+
+% Customize Sweave
+%\SweaveOpts{prefix.string=images2/}
+\SweaveOpts{keep.source=TRUE}
+\DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=2em}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+
+\hypersetup{
+colorlinks,%
+citecolor=black,%
+filecolor=black,%
+linkcolor=black,%
+urlcolor=blue
+} 
+
+\definecolor{myblue}{RGB}{35,164,208}
+\definecolor{myred}{RGB}{213,32,25}
+\definecolor{mygrey}{RGB}{220,220,220}
+\definecolor{mygreen}{RGB}{183,219,169}
+\definecolor{shadecolor}{RGB}{220,220,220}
+
+%define codebar by redefining leftbar color
+\colorlet{shadecolor}{myred}  
+\newenvironment{codechunk}{%
+  \def\FrameCommand{\textcolor{shadecolor}{\vrule width 3pt} \hspace{10pt}}%
+  \MakeFramed {\advance\hsize-\width \FrameRestore}}%
+{\endMakeFramed}
+
+%define colorbar by redefining leftbar color
+\colorlet{shadecolor2}{SlateBlue}   % you may try 'blue' here
+\newenvironment{colorbar}{%
+  \def\FrameCommand{\textcolor{shadecolor2}{\vrule width 3pt} \hspace{10pt}}%
+  \MakeFramed {\advance\hsize-\width \FrameRestore}}%
+{\endMakeFramed}
+
+\setlength{\marginparwidth}{1.2in}
+\let\oldmarginpar\marginpar
+\renewcommand\marginpar[1]{\-\oldmarginpar[\raggedleft\tiny #1]%
+{\raggedright\tiny #1}}
+
+\renewcommand*{\marginfont}{\tiny}
+% type user-defined commands here
+
+ \newcommand{\name}{R package } 
+\newcommand{\bI}{{\boldsymbol I}}
+\newcommand{\bZ}{{\boldsymbol Z}}
+\newcommand{\bV}{{\boldsymbol V}}
+\newcommand{\be}{{\boldsymbol e}}
+\newcommand{\bx}{{\boldsymbol x}}
+\newcommand{\bX}{{\boldsymbol X}}
+\newcommand{\bB}{{\boldsymbol B}}
+\newcommand{\by}{{\boldsymbol y}}
+\newcommand{\bu}{{\boldsymbol u}}
+\newcommand{\bv}{{\boldsymbol v}}
+\newcommand{\bz}{{\boldsymbol z}}
+\newcommand{\bmu}{{\boldsymbol\mu}}
+\newcommand{\vmu}{{\boldsymbol\mu}}
+\newcommand{\boldeta}{{\boldsymbol\eta}}
+\newcommand{\bpsi}{{\boldsymbol\psi}}
+\newcommand{\bepsilon}{{\boldsymbol \varepsilon}}
+\newcommand{\bdelta}{{\boldsymbol \delta}}
+\newcommand{\vbeta}{{\boldsymbol\beta}}
+\newcommand{\bzero}{{\boldsymbol 0}}
+\newcommand{\btheta}{{\boldsymbol \theta}}
+\newcommand{\bbeta}{{\boldsymbol \beta}}
+\newcommand{\bp}{{\boldsymbol p}}
+\newcommand{\bg}{{\boldsymbol g}}
+\newcommand{\bG}{{\boldsymbol G}}
+\newcommand{\code}[1]{\texttt {#1}}
+\newcommand{\CRANpkg}[1]{\textsf {#1}}
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+%\SweaveOpts{concordance=TRUE}
+%\SweaveOpts{concordance=TRUE}
+
+\title{The RepeatABEL package - a tutorial}   % type title between braces
+\author{\href{mailto:lrn@du.se}{Lars R{\"o}nneg{\aa}rd}} % type author(s) 
+\date{\today}    % type date between braces
+\maketitle
+
+<<echo=F, results=hide, eval=T>>=
+options(width=60)
+options(continue="    ")
+@
+
+\section*{Introduction}
+This vignette gives an introduction to the RepeatABEL package. The
+package performs GWAS for data where there are repeated observations
+on individuals that may be related. Various random effects can be fitted. Random polygenic effects are fitted by default, but also other random effects can be fitted including spatial effects. A model
+without the fixed SNP effect is fitted using the \CRANpkg{hglm} package for
+estimating variance components (see \emph{Ronnegard, Shen \& Alam (2010) hglm: A package for fitting hierarchical generalized linear models. \href{http://journal.r-project.org/archive/2010-2/}{The R Journal 2:20-28}}). These variance component estimates are subsequently used
+in the GWAS where each marker is fitted one at a time. Thus, this
+is similar to using the \code{polygenic\_hglm} function and subsequently
+the \code{mmscore} function in GenABEL. The package consists of three main
+functions \code{rGLS}, \code{preFitModel} and \code{simulate\_PhenData}.
+
+\section*{Theory for the \code{rGLS} function}
+The \code{rGLS} function is the main function of the package and by default fits a linear mixed model including permanent environmental effects $\boldsymbol p$ and polygenic effects $\boldsymbol g$ with correlation matrix given by the genomic relationship matrix (aka kinship matrix) in
+\begin{equation}
+\by=\bX \bbeta + \bZ \boldsymbol g + \bZ \boldsymbol p + \be
+\end{equation}
+where $\by$ is the studied trait, $\bbeta$ are fixed effects, $\be$ are residuals with $\be\sim N(0,\sigma^2_e)$ having residual variance $\sigma^2_e$. Furthermore, $\bX$ and $\bZ$ are model matrices. The random effects are assumed multivariate normal such that  $\bp\sim N(0,\bI\sigma^2_p)$ and $\bg\sim N(0,\bG\sigma^2_g)$  where $\bG$ is the genomic relationship matrix. Thus the estimated (co)variance matrix for this model is 
+\begin{equation}
+\hat{\bV}=\bZ\bG\bZ^T\hat{\sigma}^2_g+\bZ\bZ^T\hat{\sigma}^2_p+\bI\hat{\sigma}^2_e.
+\end{equation}
+Subsequently, a linear model is fitted (using generalized least squares, GLS) for each marker where the covariate $x_{SNP}$ is coded as 0,1,2:
+\begin{equation}
+\by=\bX \bbeta + x_{SNP}\beta + \bepsilon
+\end{equation}
+with 
+\begin{equation}
+\bepsilon \sim N(0,\sigma^2_\epsilon\hat{\bV}).
+\end{equation}
+A Wald test is used to compute the P value for SNP effect $\beta$.
+
+The computations are made fast by applying a eigen-decomposition of $\hat{V}$ and using the built-in \code{qr} function in R to fit the linear models (3).
+
+\section*{Using the \code{rGLS} function}
+The following example illustrates the use of the function. There are two data objects to be included in the input: a GenABEL object including the genotypic information and a data frame including the phenotypic information. The name of the ID variable in the phenotype data frame should be "id" (otherwise specify \code{id.name} equal to the ID variable name).
+
+In this example there are 360 observations from 100 individuals, and there are 5792 SNP to be tested. 
+\begin{codechunk}
+<<cache=T, eval=true>>=
+library(RepeatABEL)
+#GenABEL object including IDs and marker genotypes
+data(gen.data) 
+#Phenotype data with repeated observations
+data(Phen.Data) 
+@
+\end{codechunk}
+The data frame \code{Phen.Data} includes the trait value y, two covariates (age and sex) and the ID of the individuals. We wish to include age and sex as fixed effects so the function input is
+\begin{codechunk}
+<<cache=T, eval=true>>=
+GWAS1 <- rGLS(y ~ age + sex, genabel.data = gen.data, 
+phenotype.data = Phen.Data) 
+@
+\end{codechunk}
+The computations in this function consists of four parts: construction of the GRM, variance component estimation using the \code{hglm} function, rotating the GLS using eigen-decomposition transforming it to an ordinary least squares (OLS) problem, and finally fitting an OLS for each SNP. How far the computations have come is shown in the output. 
+
+
+The class of the output object GWAS1 is \code{gwaa.scan}, so we can apply the generic functions \code{summary()} and \code{plot()} defined by the GenABEL package.
+\begin{codechunk}
+<<cache=T, eval=true>>=
+summary(GWAS1)
+@
+\end{codechunk}
+
+\subsubsection*{Extracting the genotypic variance, a 95\% CI and the heritability}
+From the \code{GWAS1} object, the estimated variance components for the prefitted model, not including SNP effects, can be extracted as follows.
+\begin{codechunk}
+<<cache=T, eval=true>>=
+est.hglm <- GWAS1@call$hglm
+cat("Genotypic and permanent env. variance components:","\n", 
+    est.hglm$varRanef,", resp.","\n",
+    "The residual variance is", est.hglm$varFix,".","\n")
+@
+\end{codechunk}
+
+Furthermore, the standard errors for the estimated variance components are computed on a log scale. Thereby, 95\% confidence intervals can be computed for the variance components. Here the computations for the genotypic variance are shown.
+\begin{codechunk}
+<<cache=T, eval=true>>=
+logVCE <- est.hglm$SummVC2[[1]]
+cat("Estimate and SE for the genotypic variance on a natural log scale:", 
+    "\n", logVCE[1],"and",logVCE[2],", resp.", "\n \n",
+    "Confidence interval: [", exp( logVCE[1] - 1.96*logVCE[2] ) , "," , 
+    exp( logVCE[1] + 1.96*logVCE[2] ) , "]" , "\n")
+@
+\end{codechunk}
+
+The heritability for this example is computed as:
+\begin{codechunk}
+<<cache=T, eval=true>>=
+cat("Heritability:",
+    est.hglm$varRanef[1]/(est.hglm$varFix + est.hglm$varRanef[2]), 
+    "\n")
+@
+\end{codechunk}
+
+\section*{Using the \code{preFitModel} function}
+The function \code{preFitModel} is used for variance component estimation and increases the flexibility of modeling in the \code{rGLS} function. 
+
+\subsection*{Fitting the same model as above}
+To start with we have a look at how the model in the previous section can be fitted in two steps using the \code{preFitModel} function and thereafter the \code{rGLS} function. Note that the results are exactly the same as in the previous section.
+
+\begin{codechunk}
+<<cache=T, eval=true>>=
+#The same results can be computed using the preFitModel as follows
+fixed=y ~ age + sex
+Mod1 <- preFitModel(fixed, random=~1|id, 
+  genabel.data = gen.data, 
+  phenotype.data = Phen.Data, 
+  corStruc=list( id=list("GRM","Ind") )) 
+GWAS1b <- rGLS(fixed, genabel.data = gen.data, 
+phenotype.data = Phen.Data, V = Mod1$V) 
+summary(GWAS1b)
+@
+\end{codechunk}
+The only information transferred from the \code{preFitModel}  function to \code{rGLS}  is the estimated (co)variance matrix \code{Mod1\$V}. The \code{corStruc} option specifies the correlation structure to be applied on each random effect. In the example we wish to fit polygenic effects and permanent environmental effects. The former requires a correlatioon structure given by the GRM whereas the permanent environmental effects are iid. Consequently, \code{corStruc=list( id=list("GRM","Ind") ))} is specfied. 
+
+
+\subsection*{A model having several different random effects}
+In this (fake) example there are 60 observations on each nest and there are 6 different nests. We wish to include these as random effect too, and to start with they are modelled as independent random effects.
+\begin{codechunk}
+<<cache=T, eval=false>>=
+# In this example there are 6 nests and 60 observations per nest
+Phen.Data$nest <- rep(1:6, each=60)
+
+# A model including polygenic effects,  
+# permanent environmental effects, and nest effect as random
+Mod2 <- preFitModel(fixed, random=~1|id + 1|nest, 
+genabel.data = gen.data, phenotype.data = Phen.Data, 
+corStruc=list( id=list("GRM","Ind") , nest=list("Ind")) )
+GWAS2 <- rGLS(fixed, genabel.data = gen.data, 
+phenotype.data = Phen.Data, V = Mod2$V) 
+@
+\end{codechunk}
+
+\subsection*{Spatial modelling}
+This example shows how random effects having a spatial correlation structure can be included to account for populaton structure. The spatial model used is a Conditional AutoRegressive (CAR) model and the input spatial information is given by a neighborhood matrix. (A neighborhood matrix has a non-zero value for an element (i,j) where the subject (nest in our example) i and j come from neighboring locations. The diagonal elements are zero.) Here the neighborhood matrix (\code{D}) is a $6\times6$ matrix
+\begin{codechunk}
+<<cache=T, eval=true>>=
+D= matrix(0,6,6)
+D[1,2] = D[2,1] = 1
+D[5,6] = D[6,5] = 1
+D[2,4] = D[4,2] = 1
+D[3,5] = D[5,3] = 1
+D[1,6] = D[6,1] = 1
+D[3,4] = D[4,3] = 1
+@
+\end{codechunk}
+where for instance nests 1 and 2 are defined as neighbors. The model including polygenic effects, permanent environmental effects and a spatial correlation  between nests is then fitted as
+\begin{codechunk}
+<<cache=T, eval=false>>=
+Mod3 <- preFitModel(y ~ age + sex, random=~1|id + 1|nest, 
+genabel.data = gen.data, phenotype.data = Phen.Data, 
+corStruc=list( id=list("GRM","Ind") , 
+nest=list("CAR")), Neighbor.Matrix=D )
+GWAS2b <- rGLS(fixed, genabel.data = gen.data, 
+phenotype.data = Phen.Data, V = Mod3$V) 
+@
+\end{codechunk}
+
+\section*{Using the \code{simulate\_PhenData} function}
+The third function included in the \CRANpkg{RepeatABEL} package is a simulation function where one can simulate phenotypic data having repeated observations. The input genotype information is given by a GenABEL object. 
+
+Suppose for instance we want to simulate 4 observations from each individual and the three variance components (polygenic, permanent env., residual) are 1. \begin{codechunk}
+<<cache=T, eval=true>>=
+VC.poly <- VC.perm <- VC.res <- 1
+n.obs <- rep(4, nids(gen.data)) 
+@
+\end{codechunk}
+In this example, the GenABEL object \code{gen.data} is used as input and an additive genetic effect of 2.0 is simulated at the location of SNP number 1000. The phenotype data is then simulated as 
+\begin{codechunk}
+<<cache=T, eval=false>>=
+Phen.Sim <- simulate_PhenData(y ~ 1, 
+  genabel.data = gen.data, 
+  n.obs = n.obs, SNP.eff = 2, SNP.nr = 1000, 
+  VC = c(VC.poly, VC.perm,VC.res))
+@
+\end{codechunk}
+The simulated data can then be fitted as
+\begin{codechunk}
+<<cache=T, eval=false>>=
+GWAS.sim1 <- rGLS(y ~ 1, genabel.data = gen.data, 
+phenotype.data = Phen.Sim)
+@
+\end{codechunk}
+The data set \code{gen.data} includes information on sex, so we can also add a fixed sex effect to our simulations. Here a sex effect of 1.0 is simulated
+\begin{codechunk}
+<<cache=T, eval=false>>=
+Phen.Sim <- simulate_PhenData(y ~ sex, 
+genabel.data = gen.data, n.obs = n.obs, SNP.eff = 2, 
+SNP.nr = 1000, VC = c(VC.poly, VC.perm, VC.res), beta = c(0,1))
+@
+\end{codechunk}
+where \code{beta} is a vector specifying the simulated values of the fixed effects and since we fit an intercept and a sex effect the length of \code{beta} is two. The data can then be fitted as
+\begin{codechunk}
+<<cache=T, eval=false>>=
+GWAS.sim1 <- rGLS(y ~ sex, genabel.data = gen.data, 
+phenotype.data = Phen.Sim)
+plot(GWAS.sim1, main="Simulation results")
+@
+\end{codechunk}
+The produced Manhattan plot is given below
+\begin{figure}[hb]
+\center \includegraphics[width=1\textwidth]{Figure_Manhattan}
+\end{figure}
+\clearpage
+\subsection*{Simulating year effects using the \code{simulate\_PhenData} function}
+Year effects can be added to the simulated response after running the \code{simulate\_PhenData} function.
+\begin{codechunk}
+<<cache=T, eval=false>>=
+Phen.Sim <- simulate_PhenData(y ~ sex, 
+genabel.data = gen.data, n.obs = n.obs, SNP.eff = 2, 
+SNP.nr = 1000, VC = c(VC.poly, VC.perm, VC.res), beta = c(0,1))
+####### PRODUCE YEAR EFFECTS FOR EACH INDIVIDUAL
+sd.year = 1 #Standard Deviation of Year Effects
+beta <- rnorm(max(n.obs), 0, sd.year) #Simulated Year Effects
+year.effects <- years <- NULL
+for (i in 1:length(n.obs)) {
+  yr.i <- sort(sample(1:max(n.obs), n.obs[i]))
+  years <- c(years, yr.i)
+	year.effects <- c(year.effects, beta[yr.i])
+}
+########################
+#### A FUNCTION TO ADD A VARIABLE TO A LIST
+add.var <- function(x, add.new, new.name) {
+  x[[length(x) + 1]] <- add.new
+	names(x)[length(x)] <- new.name
+	return(x)
+}
+#######################
+#ADDS A NEW PHENOTYPE WITH YEAR EFFECTS ADDED
+Phen.Sim <- add.var(Phen.Sim, Phen.Sim$y + year.effects, "y.yrs")  
+#ADD YEAR AS FACTOR
+Phen.Sim <- add.var(Phen.Sim, as.factor(years), "Years") 
+#######################
+#RUN THE ANALYSIS
+GWAS.sim1 <- rGLS(y.yrs ~ sex + Years, genabel.data = gen.data, 
+phenotype.data = Phen.Sim)
+@
+\end{codechunk}
+
+\subsection*{Simulating binary data using the \code{simulate\_PhenData} function}
+Binary data can be simulated using a threshold model where a Gaussian response is first simulated and all values greater than a specified threshold $\tau$ are 1's on the observed scale. The binary data can be simulated and analyzed using the following code. 
+\begin{codechunk}
+<<cache=T, eval=false>>=
+Phen.Sim <- simulate_PhenData(y ~ sex, 
+genabel.data = gen.data, n.obs = n.obs, SNP.eff = 2, 
+SNP.nr = 1000, VC = c(VC.poly, VC.perm, VC.res), beta = c(0,1))
+tau = 0
+Phen.Sim$y_observed <- as.numeric(Phen.Sim$y > tau)
+GWAS.sim1 <- rGLS(y_observed ~ sex, genabel.data = gen.data, 
+phenotype.data = Phen.Sim)
+@
+\end{codechunk}
+
+\end{document}
+
