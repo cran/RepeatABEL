@@ -1,5 +1,5 @@
 ### R code from vignette source 'RepeatABEL_vignette.Rnw'
-### Encoding: UTF-8
+### Encoding: ISO8859-1
 
 ###################################################
 ### code chunk number 1: RepeatABEL_vignette.Rnw:106-108
@@ -54,7 +54,7 @@ cat("Estimate and SE for the genotypic variance on a natural log scale:",
 ### code chunk number 7: RepeatABEL_vignette.Rnw:197-200
 ###################################################
 cat("Heritability:",
-    est.hglm$varRanef[1]/(est.hglm$varFix + est.hglm$varRanef[2]), 
+    est.hglm$varRanef[1]/(est.hglm$varFix + sum(est.hglm$varRanef)), 
     "\n")
 
 

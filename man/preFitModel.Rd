@@ -31,7 +31,7 @@ Returns a list including the fitted hglm object \code{fitted.hglm}, the variance
 Uses a GenABEL object and phenotype data as input. The model is fitted using the \code{hglm} function in the hglm package.
 }
 \examples{
-	\donttest{
+  \donttest{
 ####### FIRST EXAMPLE USING GRM #############
  data(Phen.Data) #Phenotype data with repeated observations
  data(gen.data) #GenABEL object including IDs and marker genotypes

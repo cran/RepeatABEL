@@ -196,7 +196,7 @@ The heritability for this example is computed as:
 \begin{codechunk}
 <<cache=T, eval=true>>=
 cat("Heritability:",
-    est.hglm$varRanef[1]/(est.hglm$varFix + est.hglm$varRanef[2]), 
+    est.hglm$varRanef[1]/(est.hglm$varFix + sum(est.hglm$varRanef)), 
     "\n")
 @
 \end{codechunk}
