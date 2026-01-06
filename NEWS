@@ -1,0 +1,18 @@
+RepeatABEL v1.1 (Release date: 2016-08-17)
+==============
+
+Changes:
+
+    * Update to version 1.1
+    * Citation updated
+    * Vignette bug for heritability estimate updated
+
+RepeatABEL v2 (Release date: 2025-12-07)
+==============
+
+Changes:
+
+* The package is no longer dependent on GenABEL
+* Generic plot and summary functions added. These are slimmed version of the ones in GenABEL
+* The classes gwaa.data2 and scan.gwaa2 were added. These are simplified versions of the gwaa.data and scan.gwaa classes in GenABEL
+  

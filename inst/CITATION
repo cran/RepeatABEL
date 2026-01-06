@@ -1,13 +1,8 @@
 citHeader("To cite RepeatABEL in publications use:")
 
-citEntry(entry="Article",
+bibentry(bibtype="Article",
          title = "Increasing the power of genome wide association studies in natural populations using repeated measures: evaluation and implementation",
-         author = personList(as.person("Lars Ronnegard"),
-                             as.person("S. Eryn McFarlane"),
-                             as.person("Arild Husby"),
-                             as.person("Takeshi Kawakami"),
-                             as.person("Hans Ellegren"),
-                             as.person("Anna Qvarnstrom")),
+         author = c("Lars Ronnegard","S. Eryn McFarlane","Arild Husby","Takeshi Kawakami","Hans Ellegren","Anna Qvarnstrom"),
          journal      = "Methods in Ecology and Evolution",
          year         = "2016",
          volume       = "7",
@@ -20,15 +15,15 @@ citEntry(entry="Article",
                "Methods in Ecology and Evolution, 7:792-799.")
 )
 
-citEntry(entry="Manual",
+bibentry(bibtype="Manual",
 title = "GenABEL: genome-wide SNP association analysis",
 author = "GenABEL project developers",
     year = "2013",
     note = "R package version 1.8-0",
-    url = "http://CRAN.R-project.org/package=GenABEL",
+    url = "https://cran.r-project.org/package=GenABEL",
 
 textVersion = 
          paste("GenABEL project developers (2013).",
 "GenABEL: genome-wide SNP association analysis.",
-"R package version 1.8-0.","http://CRAN.R-project.org/package=GenABEL")
+"R package version 1.8-0.","https://cran.r-project.org/package=GenABEL")
 )

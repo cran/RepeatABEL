@@ -1,49 +1,58 @@
 #' @title GWAS for Studies having Repeated Measurements on Related Individuals
 #'
 #' @description
-#'  It is used to perform genome-wide association studies on individuals that are both related and have repeated measurements. 
-#'  The function computes score statistic based p-values for a linear mixed model including random polygenic effects and 
+#'  It is used to perform genome-wide association studies on individuals that are both related and have repeated measurements.
+#'  The function computes score statistic based p-values for a linear mixed model including random polygenic effects and
 #'  a random effect for repeated measurements. A p-value is computed for each marker and the null hypothesis tested is a
-#'   zero additive marker effect. 
+#'   zero additive marker effect.
 #'
 #' @param formula.FixedEffects Formula including the response variable and cofactors as fixed effects.
-#' @param genabel.data An GenABEL object including marker information. This object has one observtion per individuals. 
-#' @param phenotype.data A data frame including the repeated observations and IDs. 
+#' @param genabel.data A GenABEL-like object including marker information. This object has one observation per individuals.
+#' @param phenotype.data A data frame including the repeated observations and IDs.
 #' @param id.name The column name of the IDs in phen.data
 #' @param GRM An optional genetic relationship matrix (GRM) can be included as input. Otherwise the GRM is computed within the function.
 #' @param V An optional (co)variance matrix can be included as input. Otherwise it is computed using the hglm function.
 #' @param memory Used to optimize computations. The maximum number of elements in a matrix that can be stored efficiently.
-#' @details 
-#' A generalized squares (GLS) is fitted for each marker given a (co)variance matrix V. 
-#' The computations are made fast by transforming the GLS to 
-#' an ordinary least-squares (OLS) problem using an eigen-decomposition of V. 
-#' The OLS are computed using QR-factorization. If V is not specified then a model 
-#' including random polygenic effects and permanent environmental effects is 
-#' fitted (using the hglm package) to compute V. A GenABEL object (scan.gwaa class) 
+#' @param verbose If TRUE the progress of the computations is printed.
+#'
+#' @return Returns a gwaa.scan2-object.
+#' @details
+#' A generalized squares (GLS) is fitted for each marker given a (co)variance matrix V.
+#' The computations are made fast by transforming the GLS to
+#' an ordinary least-squares (OLS) problem using an eigen-decomposition of V.
+#' The OLS are computed using QR-factorization. If V is not specified then a model
+#' including random polygenic effects and permanent environmental effects is
+#' fitted (using the hglm package) to compute V. A GenABEL-like object (scan.gwaa2 class)
 #' is returned (including also the \code{hglm} results).
-#' Let e.g. GWAS1 be an object returned by the \code{rGLS} function. 
-#' Then a Manhattan plot can be produced by calling \code{plot(GWAS1)} and 
-#' the top SNPs using \code{summary(GWAS1)}. Both of these functions are 
-#' generic GenABEL functions. \cr
-#' The results from the fitted linear mixed model without any SNP effect included 
+#' Let e.g. GWAS1 be an object returned by the \code{rGLS} function.
+#' Then a Manhattan plot can be produced by calling \code{plot(GWAS1)} and
+#' the top SNPs using \code{summary(GWAS1)}.  \cr
+#' The results from the fitted linear mixed model without any SNP effect included
 #' are produced by calling \code{summary(GWAS1@@call$hglm)}.
-#' 
+#'
 #' @author Lars Ronnegard
-#' 
-#' 
+#'
+#'
 #' @examples
-#'  data(Phen.Data) #Phenotype data with repeated observations
-#'  data(gen.data) #GenABEL object including IDs and marker genotypes
-#'  GWAS1 <- rGLS(y ~ age + sex, genabel.data = gen.data, phenotype.data = Phen.Data) 
+#'  set.seed(1234)
+#'  Gen.Data <- simulate_gendata(n=100, p=200)
+#'  Phen.Data <- simulate_PhenData(y ~ 1, genabel.data=Gen.Data,
+#'                                n.obs=rep(4, nids(Gen.Data)), SNP.eff=2, SNP.nr=100, VC=c(1,1,1))
+#'  GWAS1 <- rGLS(y ~ 1, genabel.data = Gen.Data, phenotype.data = Phen.Data)
 #'  plot(GWAS1, main="")
 #'  summary(GWAS1)
 #'  #Summary for variance component estimation without SNP effects
-#'  summary(GWAS1@@call$hglm) 
+#'  summary(GWAS1@@call$hglm)
+#'
+#' @export
+#' @importFrom hglm hglm
+#' @importFrom stats pchisq
+#' @importFrom methods is
 #'
 rGLS <-
-function(formula.FixedEffects = y ~ 1, genabel.data, phenotype.data, id.name = "id", GRM = NULL, V = NULL, memory=1e8) {
+function(formula.FixedEffects = y ~ 1, genabel.data, phenotype.data, id.name = "id", GRM = NULL, V = NULL, memory = 1e8, verbose = TRUE) {
 	#Check input data
-	if (class(genabel.data) != "gwaa.data") stop("The input of genabel.data is not a GenABEL object")
+	if (!is(genabel.data,"gwaa.data2") ) stop("The input of genabel.data is not a gwaa.data2 object")
 	if (is.null(genabel.data@phdata$id)) stop("IDs not given as id in the phdata list")
     if (!is.null(GRM)) { if(!isSymmetric(GRM)) warning("The given GRM must be a symmetric matrix!") }
     if (!is.null(V)) { if(!isSymmetric(V)) warning("The given V must be a symmetric matrix!") }
@@ -60,7 +69,8 @@ function(formula.FixedEffects = y ~ 1, genabel.data, phenotype.data, id.name = "
 	id2 <- genabel.data@phdata$id #ID for genotype data
     test1 <- id1 %in% id2
     test2 <- id2 %in% id1
-    genabel.data <- genabel.data[test2,] #Exclude individuals having no phenotype information
+    ##genabel.data <- genabel.data[test2,] #Exclude individuals having no phenotype information
+    genabel.data <- keep_gwaa_data(genabel.data, which(test2)) #Exclude individuals having no phenotype information
     phenotype.data <- phenotype.data[test1,] #Exclude individuals having no genotype information
     id1 <- phenotype.data[,names(phenotype.data) %in% id.name] #ID for phenotype data for cleaned data
 	id2 <- genabel.data@phdata$id #ID for genotype data for cleaned data
@@ -81,21 +91,22 @@ function(formula.FixedEffects = y ~ 1, genabel.data, phenotype.data, id.name = "
     #Construct GRM
     if (is.null(GRM)) {
       autosomalMarkers <- which(chromosome(genabel.data)!= "X")
-      GRM <- compute.GRM(genabel.data[ , snpnames(genabel.data)[autosomalMarkers]])
+      ##GRM <- compute.GRM(genabel.data[ , snpnames(genabel.data)[autosomalMarkers]])
+      GRM <- compute.GRM(genabel.data@gtdata@gtps[ , snpnames(genabel.data)[autosomalMarkers]])
     }
     eig <- eigen(GRM)
-    if (max(diag(GRM)) > 1.6) print("There seems to be highly inbred individuals in your data")
-    if (min(eig$values < -0.5)) print("The genetic relationship matrix is far from positive definite")
+    if (max(diag(GRM)) > 1.6) warning("There seems to be highly inbred individuals in your data")
+    if (min(eig$values < -0.5)) warning("The genetic relationship matrix is far from positive definite")
     non_zero.eigenvalues <- eig$values>(1e-6) #Put numerically small eigenvalues to zero
     eig$values[ !non_zero.eigenvalues ] <- 0
-    print("GRM ready")
+    if (verbose) cat("GRM ready \n")
     #####################
     #Fit hglm
     Z.GRM <- ( eig$vectors %*% diag(sqrt(eig$values)) )[indx, ]
     Z <- (cbind(Z.GRM, Z.indx))
     mod1 <- hglm(y=y, X=X, Z=Z, RandC = c(ncol(Z.GRM), ncol(Z.indx)), maxit = 200)
     if (mod1$Converge != "converged") stop("The variance component estimation did not converge in 200 iterations. Try to estimate them separately and provide the estimated (co)variance matrix V as input. \n\n")
-    print("Variance component estimation ready")
+    if (verbose) cat("Variance component estimation ready \n")
     #####################
     #Construct rotation matrix
     ratio <- mod1$varRanef/mod1$varFix
@@ -105,17 +116,18 @@ function(formula.FixedEffects = y ~ 1, genabel.data, phenotype.data, id.name = "
 	transf.matrix <- diag(1/sqrt(eig.V$values)) %*% t(eig.V$vectors)
 	y.new <- transf.matrix %*% y
 	X.new <- transf.matrix %*% X
-	print("Rotation matrix ready")
+	if (verbose) cat("Rotation matrix ready \n")
 	#####################
 	#Fit a linear model for each SNP
-	SNP.matrix <- as.double(genabel.data)
+	##SNP.matrix <- as.double(genabel.data)
+	SNP.matrix <- as.matrix(genabel.data@gtdata@gtps)
     if (sum(is.na(SNP.matrix)) > 0) {
         SNP.matrix <- SmoothSNPmatrix(SNP.matrix)
     }
 	m <- ncol(SNP.matrix)
 	p.val <- SNP.est <- rep(1, m)
 	colnames(X.new) <- as.character(1:ncol(X.new)) #To avoid columns having strange names
-	print("Rotate LMM started")
+	if (verbose) cat("Rotate LMM started \n")
     #Fit using QR factorization
     #Null model
 	qr0 <- qr(X.new)
@@ -147,9 +159,10 @@ function(formula.FixedEffects = y ~ 1, genabel.data, phenotype.data, id.name = "
         }
         jj <- jj + step.size
 	}
-	print("Rotate LMM ready")
+	if (verbose) cat("Rotate LMM ready \n")
 	#####################
-	qt.results <- Create_gwaa_scan(genabel.data, p.val, SNP.est)
+	##qt.results <- Create_gwaa_scan(genabel.data, p.val, SNP.est)
+	qt.results <- Create_gwaa_scan2(genabel.data, p.val, SNP.est)
 	if (is.null(V.input)) qt.results@call$hglm <- mod1
 	return(qt.results)
 }

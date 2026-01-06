@@ -1,40 +1,49 @@
 #' @title Simulation function for the RepeatABEL package.
 #'
-#' @description  The function takes a GenABEL object as input and generates simulated phenotypic values for related individuals having repeated obserevations.
+#' @description  The function takes a GenABEL-like object (class gwaa.data2) as input and generates simulated phenotypic values for related individuals having repeated obserevations.
 #' @param formula.FixedEffects A formula including the name of the simulated variable as response, and cofactors as fixed effects.
-#' @param genabel.data A GenABEL object of class gwaa.data.
+#' @param genabel.data A GenABEL-like object of class gwaa.data2.
 #' @param n.obs A vector including the number of observations per individual. The length of n.obs must be equal to the number if individuals in genabel.data.
 #' @param SNP.eff The size of a simulated SNP.effect.
 #' @param SNP.nr The SNP genotype that the SNP effect is simulated on. SNP.nr=i is the i:th SNP.
 #' @param beta The simulated fixed effects. Must be equal to the number of cofactors simulated (including the intercept term).
 #' @param VC A vector of length 3 including the simulated variances of the polygenic effect, permanent environmental effect and residuals, respectively.
 #' @param GRM  An optional input where the Genetic Relationship Matrix can be given. Otherwise it is computed using the GenABEL package.
-#' @param sim.gamma A logical parameter specifying whether the residuals shuld be simulated from a gamma distribution or not. If specified as TRUE then residuals are drawn from a gamma distribution with variance equal to the residual variance specified in \code{VC[3]} 
+#' @param sim.gamma A logical parameter specifying whether the residuals shuld be simulated from a gamma distribution or not. If specified as TRUE then residuals are drawn from a gamma distribution with variance equal to the residual variance specified in \code{VC[3]}
 
 #' @return Returns a data frame including the simulated phenotypic values, cofactors and IDs.
 #' @author Lars Ronnegard
 
 #' @examples
-#' data(gen.data)
 #'  #Simulate 4 observations per individual
 #'  set.seed(1234)
-#'  Phen.Sim <- simulate_PhenData(y ~ age, genabel.data=gen.data, 
-#'                  n.obs=rep(4, nids(gen.data)), SNP.eff=1, SNP.nr=1000, VC=c(1,1,1))
-#'  GWAS1 <- rGLS(y ~ age, genabel.data = gen.data, phenotype.data = Phen.Sim)
+#'  Gen.Data <- simulate_gendata(n=100, p=200)
+#'  Phen.Data <- simulate_PhenData(y ~ 1, genabel.data=Gen.Data,
+#'                                n.obs=rep(4, nids(Gen.Data)), SNP.eff=2, SNP.nr=100, VC=c(1,1,1))
+#'  GWAS1 <- rGLS(y ~ 1, genabel.data = Gen.Data, phenotype.data = Phen.Data)
 #'  plot(GWAS1, main="Simulated Data Results")
-#'  
-simulate_PhenData <-
-function(formula.FixedEffects = y~1, genabel.data, n.obs, SNP.eff = NULL, SNP.nr = NULL, beta = NULL, VC = c(1,1,1), GRM = NULL, sim.gamma = FALSE){
+#'
+#' @export
+#'
+#' @importFrom stats rnorm
+#' @importFrom stats rgamma
+#' @importFrom stats rbinom
+#' @importFrom methods is
+#'
+simulate_PhenData <- function(formula.FixedEffects = y~1, genabel.data, n.obs, SNP.eff = NULL, SNP.nr = NULL, beta = NULL, VC = c(1,1,1), GRM = NULL, sim.gamma = FALSE){
     #library(GenABEL)
   if (length(SNP.eff) != length(SNP.nr)) stop("The number of elements in SNP.eff and SNP.nr must be the same")
   if (is.null(SNP.eff)) {
       SNP.eff <- 0
       SNP.nr <- 1
   }
-  SNP <- as.double(genabel.data@gtdata[,SNP.nr])
+  ##SNP <- as.double(genabel.data@gtdata[,SNP.nr])
+  SNP <- as.matrix(genabel.data@gtdata@gtps[,SNP.nr])
+
   rownames(SNP) <- NULL
   SNP <- SmoothSNPmatrix(SNP)
-  n <- nids(genabel.data)
+  ##n <- nids(genabel.data)
+  n <- genabel.data@gtdata@nids
   if (length(n.obs) != n) stop("The number of individuals and the length of n.obs must be the same")
   N <- sum(n.obs)
   id1 <- rep(genabel.data@phdata$id, n.obs)
@@ -50,11 +59,12 @@ function(formula.FixedEffects = y~1, genabel.data, n.obs, SNP.eff = NULL, SNP.nr
   ###########
   if (is.null(GRM)) {
     autosomalMarkers <- which(chromosome(genabel.data) != "X")
-    GRM <- compute.GRM(genabel.data[ , snpnames(genabel.data)[autosomalMarkers]])
+    ##GRM <- compute.GRM(genabel.data[ , snpnames(genabel.data)[autosomalMarkers]])
+    GRM <- compute.GRM(genabel.data@gtdata@gtps[ , snpnames(genabel.data)[autosomalMarkers]])
   }
   eig <- eigen(GRM)
-  if (max(diag(GRM)) > 1.6) print("There seems to be highly inbred individuals in your data")
-  if (min(eig$values < -0.5)) print("The genetic relationship matrix is far from positive definite")
+  if (max(diag(GRM)) > 1.6) warning("There seems to be highly inbred individuals in your data")
+  if (min(eig$values < -0.5)) warning("The genetic relationship matrix is far from positive definite")
   non_zero.eigenvalues <- eig$values>(1e-6) #Put numerically small eigenvalues to zero
   eig$values[!non_zero.eigenvalues] <- 0
   Z.GRM <- ( eig$vectors %*% diag(sqrt(eig$values)) )[indx, ]
@@ -65,7 +75,7 @@ function(formula.FixedEffects = y~1, genabel.data, n.obs, SNP.eff = NULL, SNP.nr
   if (is.null(beta)) beta <- rep(0, ncol(X0))
   if (ncol(X0) != length(beta)) stop("The length of beta must be the same as the number columns in the cofactor design matrix")
   X <- X0[indx, 1:ncol(X0)]
-  if (class(X)=="numeric") X <- matrix(X, length(X), 1)
+  if ( is(X,"numeric") ) X <- matrix(X, length(X), 1)
   sigma2a <- VC[1]
   sigma2p <- VC[2]
   sigma2e <- VC[3]

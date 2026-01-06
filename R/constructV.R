@@ -3,12 +3,14 @@
 #' @description
 #' Constructs the (co)variance matrix for y.
 #'
-#' @param Z The incidence matrix for the random effects column binded with the Cholesky of the GRM 
-#' @param RandC The number of columns in the two matrices combined in Z. 
+#' @param Z The incidence matrix for the random effects column binded with the Cholesky of the GRM
+#' @param RandC The number of columns in the two matrices combined in Z.
 #' @param ratio The ratios between random effect variances and the residual variance.
-#' 
+#' @return Returns a (co)variance matrix of y.
 #' @author Lars Ronnegard
-#' 
+#'
+#' @export
+#'
 constructV <-
 function(Z, RandC, ratio) {
   V <- diag(nrow(Z))
